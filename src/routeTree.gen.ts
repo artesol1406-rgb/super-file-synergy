@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiSceneImageRouteImport } from './routes/api/scene-image'
+import { Route as ApiCompanionRouteImport } from './routes/api/companion'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSceneImageRoute = ApiSceneImageRouteImport.update({
+  id: '/api/scene-image',
+  path: '/api/scene-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompanionRoute = ApiCompanionRouteImport.update({
+  id: '/api/companion',
+  path: '/api/companion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/companion': typeof ApiCompanionRoute
+  '/api/scene-image': typeof ApiSceneImageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/companion': typeof ApiCompanionRoute
+  '/api/scene-image': typeof ApiSceneImageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/companion': typeof ApiCompanionRoute
+  '/api/scene-image': typeof ApiSceneImageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/api/companion' | '/api/scene-image'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/api/companion' | '/api/scene-image'
+  id: '__root__' | '/' | '/api/companion' | '/api/scene-image'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiCompanionRoute: typeof ApiCompanionRoute
+  ApiSceneImageRoute: typeof ApiSceneImageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,12 +68,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/scene-image': {
+      id: '/api/scene-image'
+      path: '/api/scene-image'
+      fullPath: '/api/scene-image'
+      preLoaderRoute: typeof ApiSceneImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/companion': {
+      id: '/api/companion'
+      path: '/api/companion'
+      fullPath: '/api/companion'
+      preLoaderRoute: typeof ApiCompanionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiCompanionRoute: ApiCompanionRoute,
+  ApiSceneImageRoute: ApiSceneImageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
