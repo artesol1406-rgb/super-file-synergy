@@ -78,39 +78,39 @@ export async function exportMemoryPdf(state: SaveState): Promise<Uint8Array> {
     return s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, "-");
   }
 
-  // Título
-  drawLines(["El Guardián del Espejo"], bold, 24, ink, 6);
-  drawLines([`Una memoria de ${state.character?.name ?? "la viajera"}`], italic, 12, muted, 4);
-  drawLines([`Sellada el ${new Date(state.savedAt).toLocaleString()}`], italic, 9, muted, 14);
+  // Title
+  drawLines(["The Mirror-Keeper"], bold, 24, ink, 6);
+  drawLines([`A memory of ${state.character?.name ?? "the traveler"}`], italic, 12, muted, 4);
+  drawLines([`Sealed on ${new Date(state.savedAt).toLocaleString()}`], italic, 9, muted, 14);
 
-  // Ficha de personaje
-  drawLines(["El personaje"], bold, 14, ink, 6);
+  // Character sheet
+  drawLines(["The character"], bold, 14, ink, 6);
   const c = state.character ?? {};
   const sheet = [
-    `Nombre: ${c.name ?? ""}`,
-    `Universo: ${c.universe ?? ""}`,
-    `Raza: ${c.race ?? ""}`,
-    `Clase: ${c.className ?? ""}`,
-    `Modo: ${c.mode ?? ""}`,
-    c.traits ? `Rasgos: ${c.traits}` : "",
-    c.shadowSeed ? `Semilla: ${c.shadowSeed}` : "",
+    `Name: ${c.name ?? ""}`,
+    `Universe: ${c.universe ?? ""}`,
+    `Race: ${c.race ?? ""}`,
+    `Class: ${c.className ?? ""}`,
+    `Mode: ${c.mode ?? ""}`,
+    c.traits ? `Traits: ${c.traits}` : "",
+    c.shadowSeed ? `Seed: ${c.shadowSeed}` : "",
   ].filter(Boolean);
   for (const line of sheet) drawLines(wrap(line, font, 11), font, 11, ink, 3);
 
   if (c.companions?.length) {
     y -= 6;
-    drawLines(["Compañía"], bold, 12, ink, 4);
+    drawLines(["Company"], bold, 12, ink, 4);
     for (const k of c.companions) {
       drawLines(wrap(`- ${k.name}${k.description ? " — " + k.description : ""}`, font, 11), font, 11, ink, 3);
     }
   }
 
   y -= 12;
-  drawLines(["La historia hasta ahora"], bold, 14, ink, 6);
+  drawLines(["The story so far"], bold, 14, ink, 6);
 
   for (const m of state.messages) {
     if (!m.text.trim()) continue;
-    const label = m.role === "user" ? `${c.name ?? "Tú"}:` : "El Guardián:";
+    const label = m.role === "user" ? `${c.name ?? "You"}:` : "The Keeper:";
     drawLines([label], bold, 10, muted, 3);
     drawLines(
       wrap(m.text, m.role === "assistant" ? font : italic, 11),
@@ -122,17 +122,17 @@ export async function exportMemoryPdf(state: SaveState): Promise<Uint8Array> {
     y -= 6;
   }
 
-  // Datos de reanudación: en metadatos Y como marcador visible (parseo robusto)
+  // Resume data: in metadata AND as a visible marker (robust parsing)
   const json = JSON.stringify(state);
   const b64 = toBase64(json);
 
-  pdf.setTitle(`El Guardián del Espejo — ${c.name ?? "memoria"}`);
-  pdf.setAuthor(c.name ?? "viajera");
+  pdf.setTitle(`The Mirror-Keeper — ${c.name ?? "memory"}`);
+  pdf.setAuthor(c.name ?? "traveler");
   pdf.setSubject("guardian-del-espejo-save-v1");
   pdf.setKeywords([MARKER_OPEN + b64 + MARKER_CLOSE]);
 
   newPage();
-  drawLines(["— datos de reanudación —"], italic, 9, muted, 4);
+  drawLines(["— resume data —"], italic, 9, muted, 4);
   const chunks = b64.match(/.{1,90}/g) ?? [];
   drawLines([MARKER_OPEN], font, 6, muted, 2);
   for (const ch of chunks) drawLines([ch], font, 6, muted, 1);
@@ -160,7 +160,7 @@ export async function importMemoryPdf(file: File): Promise<SaveState> {
     const state = JSON.parse(fromBase64(b64)) as SaveState;
     if (state.version === 1) return state;
   }
-  throw new Error("Este PDF no contiene una memoria de El Guardián del Espejo.");
+  throw new Error("This PDF does not contain a Mirror-Keeper memory.");
 }
 
 export function downloadBytes(bytes: Uint8Array, filename: string) {
