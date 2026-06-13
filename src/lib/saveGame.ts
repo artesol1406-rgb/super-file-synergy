@@ -160,7 +160,7 @@ export async function importMemoryPdf(file: File): Promise<SaveState> {
     const state = JSON.parse(fromBase64(b64)) as SaveState;
     if (state.version === 1) return state;
   }
-  throw new Error("Este PDF no contiene una memoria de El Guardián del Espejo.");
+  throw new Error("This PDF does not contain a Mirror-Keeper memory.");
 }
 
 export function downloadBytes(bytes: Uint8Array, filename: string) {
