@@ -7,6 +7,7 @@ import d20Url from "@/assets/d20.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { IntroAnimation } from "@/components/IntroAnimation";
 import { streamImage } from "@/lib/streamImage";
 import { cn } from "@/lib/utils";
 import {
@@ -26,17 +27,17 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "El Guardián del Espejo — RPG narrativo de sombra con IA" },
+      { title: "The Mirror-Keeper — AI shadow-work narrative RPG" },
       {
         name: "description",
         content:
-          "Un RPG narrativo donde cada criatura, ruina y extraño es un espejo de lo que llevas dentro. Guiado por un motor de coherencia Amalgam y narrado por IA.",
+          "A narrative RPG where every creature, ruin and stranger is a mirror of what you carry within. Guided by the Amalgam coherence engine and narrated by AI.",
       },
-      { property: "og:title", content: "El Guardián del Espejo" },
+      { property: "og:title", content: "The Mirror-Keeper" },
       {
         property: "og:description",
         content:
-          "RPG narrativo de trabajo de sombra: el mundo refleja tu estado interior. Motor Amalgam + narración con IA.",
+          "A shadow-work narrative RPG: the world reflects your inner state. Amalgam engine + AI storytelling.",
       },
       { property: "og:type", content: "website" },
     ],
@@ -47,9 +48,9 @@ export const Route = createFileRoute("/")({
 type Mode = "exploration" | "combat" | "dialogue";
 
 const MODE_LABELS: Record<Mode, string> = {
-  exploration: "Exploración",
-  combat: "Combate",
-  dialogue: "Diálogo",
+  exploration: "Exploration",
+  combat: "Combat",
+  dialogue: "Dialogue",
 };
 
 type Companion = { name: string; description: string };
@@ -66,30 +67,41 @@ type Character = {
 };
 
 const RACES = [
-  { name: "Humano", whisper: "el espejo familiar" },
-  { name: "Elfo", whisper: "la parte que observa desde lejos" },
-  { name: "Enano", whisper: "la parte que resiste bajo tierra" },
-  { name: "Tiefling", whisper: "la parte que fue llamada equivocada" },
-  { name: "Autómata", whisper: "la parte que aprendió a ser útil" },
-  { name: "Cambiaformas", whisper: "la parte a la que nunca se le permitió elegir" },
+  { name: "Human", whisper: "the familiar mirror" },
+  { name: "Elf", whisper: "the part that watches from afar" },
+  { name: "Dwarf", whisper: "the part that endures underground" },
+  { name: "Tiefling", whisper: "the part that was called wrong" },
+  { name: "Automaton", whisper: "the part that learned to be useful" },
+  { name: "Shapeshifter", whisper: "the part never allowed to choose" },
 ];
 
 const CLASSES = [
-  { name: "Guerrero", whisper: "el que aprendió a pelear primero" },
-  { name: "Mago", whisper: "el que lee lo que otros no ven" },
-  { name: "Pícaro", whisper: "el que sobrevive escondiéndose" },
-  { name: "Sanador", whisper: "el que cuida en lugar de ser cuidado" },
-  { name: "Bardo", whisper: "el que convierte la herida en canción" },
-  { name: "Errante", whisper: "el que nunca se quedó" },
+  { name: "Warrior", whisper: "the one who learned to fight first" },
+  { name: "Mage", whisper: "the one who reads what others can't see" },
+  { name: "Rogue", whisper: "the one who survives by hiding" },
+  { name: "Healer", whisper: "the one who tends instead of being tended" },
+  { name: "Bard", whisper: "the one who turns the wound into song" },
+  { name: "Wanderer", whisper: "the one who never stayed" },
 ];
 
-const SEED_PROMPT =
-  "¿Qué peso ha cargado tu personaje que nadie conoce?";
+const SEED_PROMPT = "What weight has your character carried that no one knows?";
 
 function MirrorKeeper() {
+  const [showIntro, setShowIntro] = useState(true);
   const [character, setCharacter] = useState<Character | null>(null);
   const [resumed, setResumed] = useState<SavedMessage[] | null>(null);
   const [resumedPsi, setResumedPsi] = useState<Psi | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("mk-intro") === "1") {
+      setShowIntro(false);
+    }
+  }, []);
+
+  function endIntro() {
+    if (typeof window !== "undefined") sessionStorage.setItem("mk-intro", "1");
+    setShowIntro(false);
+  }
 
   function begin(c: Character, messages: SavedMessage[] | null = null, psi: Psi | null = null) {
     setCharacter(c);
@@ -101,6 +113,8 @@ function MirrorKeeper() {
     setResumed(null);
     setResumedPsi(null);
   }
+
+  if (showIntro) return <IntroAnimation onDone={endIntro} />;
 
   return character ? (
     <Play
@@ -115,7 +129,7 @@ function MirrorKeeper() {
   );
 }
 
-/* ────────────── CREACIÓN DE PERSONAJE ────────────── */
+/* ────────────── CHARACTER CREATION ────────────── */
 
 function Creation({
   onBegin,
@@ -161,50 +175,50 @@ function Creation({
             height={1024}
             className="mx-auto w-16 h-16 mb-4 opacity-90 drop-shadow-[0_0_18px_oklch(0.62_0.18_40/0.6)]"
           />
-          <h1 className="text-display text-4xl sm:text-5xl text-primary glow-ember">El Guardián del Espejo</h1>
+          <h1 className="text-display text-4xl sm:text-5xl text-primary glow-ember">The Mirror-Keeper</h1>
           <p className="mt-3 text-muted-foreground italic max-w-lg mx-auto">
-            Un RPG de mesa donde cada monstruo, ruina y extraño es un espejo de lo que llevas dentro.
-            El Guardián habla con franqueza. Nunca juzga. Nunca filtra. Solo escucha, y tira los dados.
+            A tabletop RPG where every monster, ruin and stranger is a mirror of what you carry within.
+            The Keeper speaks plainly. It never judges. It never filters. It only listens, and rolls the dice.
           </p>
         </header>
 
-        {/* Reanudar */}
+        {/* Resume */}
         <div className="mb-8 rounded-md border border-border bg-card/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-display text-xs uppercase tracking-widest text-primary">Reanudar una memoria</p>
+            <p className="text-display text-xs uppercase tracking-widest text-primary">Resume a memory</p>
             <p className="text-xs text-muted-foreground italic mt-1">
-              Abre un PDF de memoria que descargaste antes. Solo tu propio PDF reanuda tu historia: nadie puede
-              continuar la partida de otra persona.
+              Open a memory PDF you downloaded before. Only your own PDF resumes your story — no one can
+              continue someone else's game.
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <input ref={fileRef} type="file" accept="application/pdf" hidden onChange={handlePdf} />
             <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
-              Cargar PDF
+              Load PDF
             </Button>
           </div>
         </div>
         {resumeErr && <p className="text-destructive text-xs italic mb-4 -mt-4">{resumeErr}</p>}
 
-        <Section label="I. Nómbrate">
+        <Section label="I. Name yourself">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="El nombre al que responde tu personaje"
+            placeholder="The name your character answers to"
             className="bg-input/60"
           />
         </Section>
 
-        <Section label="II. El mundo al que despiertas">
+        <Section label="II. The world you wake to">
           <Input
             value={universe}
             onChange={(e) => setUniverse(e.target.value)}
-            placeholder="p. ej. reino de ceniza, ciudad-templo de neón, bosque ahogado..."
+            placeholder="e.g. a realm of ash, a neon temple-city, a drowned forest..."
             className="bg-input/60"
           />
         </Section>
 
-        <Section label="III. Raza — la forma en que te muestras">
+        <Section label="III. Race — the form you show">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {RACES.map((r) => (
               <ChipButton key={r.name} active={race === r.name} onClick={() => setRace(r.name)}>
@@ -215,7 +229,7 @@ function Creation({
           </div>
         </Section>
 
-        <Section label="IV. Clase — cómo aprendiste a encontrar el mundo">
+        <Section label="IV. Class — how you learned to meet the world">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {CLASSES.map((c) => (
               <ChipButton key={c.name} active={className === c.name} onClick={() => setClassName(c.name)}>
@@ -227,19 +241,19 @@ function Creation({
         </Section>
 
         <Section
-          label="V. Rasgos — escribe a tu personaje con honestidad"
-          hint="Hábitos, cicatrices, contradicciones, deseos, voz. Lo que sea. El Guardián no se inmutará ni suavizará."
+          label="V. Traits — write your character honestly"
+          hint="Habits, scars, contradictions, desires, voice. Anything. The Keeper won't flinch or soften."
         >
           <Textarea
             value={traits}
             onChange={(e) => setTraits(e.target.value)}
-            placeholder="p. ej. rápido para la furia pero lento para irse. Duerme con un cuchillo. Ama a quien no debería. Ríe en los funerales. Miente sobre su nombre."
+            placeholder="e.g. quick to fury but slow to leave. Sleeps with a knife. Loves who they shouldn't. Laughs at funerals. Lies about their name."
             rows={4}
             className="bg-input/60 resize-none"
           />
         </Section>
 
-        <Section label="VI. Modo por defecto">
+        <Section label="VI. Default mode">
           <div className="grid grid-cols-3 gap-2">
             {(["exploration", "combat", "dialogue"] as Mode[]).map((m) => (
               <ChipButton key={m} active={mode === m} onClick={() => setMode(m)}>
@@ -249,11 +263,11 @@ function Creation({
           </div>
         </Section>
 
-        <Section label="VII. Una semilla para el Guardián (opcional)" hint={SEED_PROMPT}>
+        <Section label="VII. A seed for the Keeper (optional)" hint={SEED_PROMPT}>
           <Textarea
             value={shadowSeed}
             onChange={(e) => setShadowSeed(e.target.value)}
-            placeholder="Lo que escribas aquí, el mundo te lo devolverá como espejo — sin juicio, sin suavizar."
+            placeholder="Whatever you write here, the world will return to you as a mirror — without judgment, without softening."
             rows={4}
             className="bg-input/60 resize-none"
           />
@@ -265,7 +279,7 @@ function Creation({
             onClick={() => onBegin({ name, universe, race, className, shadowSeed, traits, mode, companions: [] })}
             className="text-display text-lg px-8 py-6 bg-gradient-to-b from-primary to-accent text-primary-foreground hover:brightness-110 shadow-[0_0_30px_oklch(0.62_0.18_40/0.4)] disabled:opacity-40 disabled:shadow-none"
           >
-            Abrir la puerta
+            Open the door
           </Button>
         </div>
       </div>
@@ -300,7 +314,7 @@ function ChipButton({ active, onClick, children }: { active: boolean; onClick: (
   );
 }
 
-/* ────────────── JUEGO ────────────── */
+/* ────────────── PLAY ────────────── */
 
 function Play({
   character,
@@ -332,7 +346,7 @@ function Play({
         parts: [
           {
             type: "text",
-            text: `Comienza la escena inicial para ${character.name}. Modo: ${character.mode}.`,
+            text: `Begin the opening scene for ${character.name}. Mode: ${character.mode}.`,
           },
         ],
       } as UIMessage,
@@ -340,7 +354,7 @@ function Play({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Estado del motor Amalgam (Ψ)
+  // Amalgam engine state (Ψ)
   const psiRef = useRef<Psi>(resumedPsi ?? createPsi());
   const [psi, setPsi] = useState<Psi>(psiRef.current);
 
@@ -369,10 +383,10 @@ function Play({
   useEffect(() => {
     if (!sentOpener.current && messages.length === 1) {
       sentOpener.current = true;
-      // Apertura: usamos el estado base sin pasos previos.
+      // Opening: use the base state with no prior steps.
       const amalgam = summarizeForPrompt(psiRef.current, []);
       sendMessage(
-        { text: `Comienza la escena inicial para ${character.name}. Modo: ${character.mode}.` },
+        { text: `Begin the opening scene for ${character.name}. Mode: ${character.mode}.` },
         { body: { character: characterRef.current, amalgam } },
       );
     }
@@ -399,8 +413,8 @@ function Play({
         messages: saved,
         amalgam: psiRef.current,
       });
-      const slug = (character.name || "memoria").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-      downloadBytes(bytes, `guardian-del-espejo-${slug}.pdf`);
+      const slug = (character.name || "memory").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+      downloadBytes(bytes, `the-mirror-keeper-${slug}.pdf`);
     } finally {
       setSaving(false);
     }
@@ -412,7 +426,7 @@ function Play({
     e.preventDefault();
     const text = input.trim();
     if (!text || busy) return;
-    // Avanza el motor Amalgam con la acción del jugador.
+    // Advance the Amalgam engine with the player's action.
     const { psi: next, directives } = stepPsi(psiRef.current, text, character.mode);
     psiRef.current = next;
     setPsi(next);
@@ -458,9 +472,9 @@ function Play({
               onClick={downloadMemory}
               disabled={saving || visible.length === 0}
               className="text-muted-foreground hover:text-primary text-xs uppercase tracking-wider"
-              title="Descarga un PDF de memoria para reanudar más tarde"
+              title="Download a memory PDF to resume later"
             >
-              {saving ? "Sellando…" : "Guardar"}
+              {saving ? "Sealing…" : "Save"}
             </Button>
             <Button
               variant="ghost"
@@ -468,12 +482,12 @@ function Play({
               onClick={onReset}
               className="text-muted-foreground hover:text-primary text-xs uppercase tracking-wider"
             >
-              Nueva
+              New
             </Button>
           </div>
         </header>
 
-        {/* Selector de modo */}
+        {/* Mode selector */}
         <div className="flex gap-2 mb-4">
           {(["exploration", "combat", "dialogue"] as Mode[]).map((m) => (
             <button
@@ -491,7 +505,7 @@ function Play({
           ))}
         </div>
 
-        {/* Visualizador de escena */}
+        {/* Scene visualizer */}
         <SceneVisualizer scene={sceneText} character={character} streaming={busy} />
 
         {/* Chat */}
@@ -500,15 +514,15 @@ function Play({
           className="flex-1 overflow-y-auto scroll-panel rounded-lg border border-border p-6 space-y-6 min-h-[40vh] mt-4"
         >
           {visible.length === 0 && (
-            <p className="text-center text-muted-foreground italic text-sm py-8">El Guardián toma aliento…</p>
+            <p className="text-center text-muted-foreground italic text-sm py-8">The Keeper draws breath…</p>
           )}
           {visible.map((m) => (
             <Message key={m.id} message={m} />
           ))}
           {busy && visible.at(-1)?.role !== "assistant" && (
-            <p className="text-primary text-sm italic animate-pulse">El Guardián considera…</p>
+            <p className="text-primary text-sm italic animate-pulse">The Keeper considers…</p>
           )}
-          {error && <p className="text-destructive text-sm italic">El espejo se nubló. {error.message}</p>}
+          {error && <p className="text-destructive text-sm italic">The mirror clouded over. {error.message}</p>}
         </div>
 
         <form onSubmit={submit} className="mt-4 flex gap-2">
@@ -523,10 +537,10 @@ function Play({
             }}
             placeholder={
               character.mode === "combat"
-                ? "Tu turno. (atacar, defender, hablar, huir…)"
+                ? "Your turn. (attack, defend, speak, flee…)"
                 : character.mode === "dialogue"
-                ? "¿Qué dices?"
-                : "¿Qué haces? (Enter para actuar, Shift+Enter para nueva línea)"
+                ? "What do you say?"
+                : "What do you do? (Enter to act, Shift+Enter for a new line)"
             }
             rows={2}
             disabled={busy}
@@ -537,15 +551,15 @@ function Play({
             disabled={busy || !input.trim()}
             className="text-display bg-gradient-to-b from-primary to-accent text-primary-foreground hover:brightness-110 self-stretch px-6"
           >
-            {character.mode === "combat" ? "Golpear" : character.mode === "dialogue" ? "Hablar" : "Actuar"}
+            {character.mode === "combat" ? "Strike" : character.mode === "dialogue" ? "Speak" : "Act"}
           </Button>
         </form>
         <p className="text-[10px] text-center text-muted-foreground/60 mt-2 italic">
-          El Guardián nunca juzga. Sin filtros. Sin suavizar. Lo que emerja es bienvenido.
+          The Keeper never judges. No filters. No softening. Whatever emerges is welcome.
         </p>
       </div>
 
-      {/* ─── BARRA LATERAL ─── */}
+      {/* ─── SIDEBAR ─── */}
       <aside className="space-y-4 lg:sticky lg:top-6 self-start">
         <MirrorPanel psi={psi} />
         <PartyPanel character={character} onAdd={addCompanion} onRemove={removeCompanion} />
@@ -554,7 +568,7 @@ function Play({
   );
 }
 
-/* ────────────── ESPEJO INTERIOR (Amalgam) ────────────── */
+/* ────────────── INNER MIRROR (Amalgam) ────────────── */
 
 function Meter({ label, value, tone = "primary" }: { label: string; value: number; tone?: "primary" | "tension" }) {
   const pct = Math.round(value * 100);
@@ -582,7 +596,7 @@ function MirrorPanel({ psi }: { psi: Psi }) {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between text-display text-primary uppercase tracking-widest text-xs"
       >
-        <span>Espejo interior</span>
+        <span>Inner mirror</span>
         <span className="text-muted-foreground">{open ? "−" : "+"}</span>
       </button>
 
@@ -595,13 +609,13 @@ function MirrorPanel({ psi }: { psi: Psi }) {
           <p className="text-[11px] italic text-muted-foreground">{poeticNote(psi)}</p>
 
           <div className="space-y-2">
-            <Meter label="Coherencia" value={psi.coherence} />
-            <Meter label="Tensión" value={psi.tension} tone="tension" />
-            <Meter label="Suerte" value={psi.luck} />
+            <Meter label="Coherence" value={psi.coherence} />
+            <Meter label="Tension" value={psi.tension} tone="tension" />
+            <Meter label="Luck" value={psi.luck} />
           </div>
 
           <div className="border-t border-border pt-3 space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Centros (chakras)</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Centers (chakras)</p>
             {psi.chakras.map((ch) => (
               <div key={ch.key}>
                 <div className="flex justify-between text-[10px] text-foreground/80 mb-0.5">
@@ -624,7 +638,7 @@ function MirrorPanel({ psi }: { psi: Psi }) {
           </div>
 
           <p className="text-[10px] text-muted-foreground/70 italic">
-            El motor guía la narración en silencio. El mundo refleja tu estado sin nombrarlo.
+            The engine guides the narration in silence. The world reflects your state without naming it.
           </p>
         </div>
       )}
@@ -632,7 +646,7 @@ function MirrorPanel({ psi }: { psi: Psi }) {
   );
 }
 
-/* ────────────── VISUALIZADOR DE ESCENA ────────────── */
+/* ────────────── SCENE VISUALIZER ────────────── */
 
 function SceneVisualizer({ scene, character, streaming }: { scene: string; character: Character; streaming: boolean }) {
   const [src, setSrc] = useState<string | null>(null);
@@ -681,7 +695,7 @@ function SceneVisualizer({ scene, character, streaming }: { scene: string; chara
       {src ? (
         <img
           src={src}
-          alt="La escena tal como la ve el Guardián del Espejo"
+          alt="The scene as the Mirror-Keeper sees it"
           className={cn(
             "w-full h-full object-cover transition-all duration-500",
             isFinal ? "blur-0" : "blur-md scale-105",
@@ -689,12 +703,12 @@ function SceneVisualizer({ scene, character, streaming }: { scene: string; chara
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground italic text-sm">
-          {loading ? "El espejo se está formando…" : "El Guardián aún no te ha mostrado la escena."}
+          {loading ? "The mirror is taking shape…" : "The Keeper hasn't shown you the scene yet."}
         </div>
       )}
       {loading && (
         <div className="absolute top-2 right-2 text-[10px] uppercase tracking-widest text-primary bg-background/70 px-2 py-1 rounded border border-border">
-          revelando
+          revealing
         </div>
       )}
       {err && (
@@ -706,7 +720,7 @@ function SceneVisualizer({ scene, character, streaming }: { scene: string; chara
   );
 }
 
-/* ────────────── PANEL DE COMPAÑÍA ────────────── */
+/* ────────────── PARTY PANEL ────────────── */
 
 function PartyPanel({
   character,
@@ -730,11 +744,11 @@ function PartyPanel({
 
   return (
     <div className="scroll-panel rounded-lg border border-border p-4">
-      <h2 className="text-display text-primary uppercase tracking-widest text-xs mb-3">Tu compañía</h2>
+      <h2 className="text-display text-primary uppercase tracking-widest text-xs mb-3">Your company</h2>
 
       <div className="space-y-2 mb-4">
         {character.companions.length === 0 && (
-          <p className="text-xs italic text-muted-foreground">Por ahora caminas solo.</p>
+          <p className="text-xs italic text-muted-foreground">For now you walk alone.</p>
         )}
         {character.companions.map((k) => (
           <div key={k.name} className="border border-border rounded bg-card/40">
@@ -751,7 +765,7 @@ function PartyPanel({
                   if (open === k.name) setOpen(null);
                 }}
                 className="text-xs text-muted-foreground hover:text-destructive px-2"
-                title="Dejar la compañía"
+                title="Leave the company"
               >
                 ×
               </button>
@@ -762,29 +776,29 @@ function PartyPanel({
       </div>
 
       <div className="border-t border-border pt-3 space-y-2">
-        <p className="text-[11px] uppercase tracking-widest text-display text-muted-foreground">Añadir compañero</p>
+        <p className="text-[11px] uppercase tracking-widest text-display text-muted-foreground">Add a companion</p>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Nombre"
+          placeholder="Name"
           className="bg-input/60 h-8 text-sm"
         />
         <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="¿Quiénes son? Voz, cicatrices, lo que quieren. (con honestidad)"
+          placeholder="Who are they? Voice, scars, what they want. (honestly)"
           rows={2}
           className="bg-input/60 text-sm resize-none"
         />
         <Button size="sm" onClick={add} disabled={!name.trim()} className="w-full text-display">
-          Llevar a la compañía
+          Bring into the company
         </Button>
       </div>
     </div>
   );
 }
 
-/* ────────────── CHAT DE COMPAÑERO ────────────── */
+/* ────────────── COMPANION CHAT ────────────── */
 
 function CompanionChat({ companion, character }: { companion: Companion; character: Character }) {
   const [history, setHistory] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
@@ -812,7 +826,7 @@ function CompanionChat({ companion, character }: { companion: Companion; charact
       const { reply } = (await res.json()) as { reply: string };
       setHistory([...next, { role: "assistant", content: reply }]);
     } catch {
-      setHistory([...next, { role: "assistant", content: "(no dicen nada — la línea se cortó)" }]);
+      setHistory([...next, { role: "assistant", content: "(they say nothing — the line went dead)" }]);
     } finally {
       setBusy(false);
     }
@@ -822,7 +836,7 @@ function CompanionChat({ companion, character }: { companion: Companion; charact
     <div className="border-t border-border p-2 space-y-2 bg-background/40">
       <div className="max-h-48 overflow-y-auto space-y-1.5 text-xs">
         {history.length === 0 && (
-          <p className="italic text-muted-foreground">Habla con {companion.name}. Con franqueza.</p>
+          <p className="italic text-muted-foreground">Talk to {companion.name}. Plainly.</p>
         )}
         {history.map((m, i) => (
           <div
@@ -852,19 +866,19 @@ function CompanionChat({ companion, character }: { companion: Companion; charact
               send();
             }
           }}
-          placeholder={`Díselo a ${companion.name}…`}
+          placeholder={`Tell ${companion.name}…`}
           className="bg-input/60 h-8 text-xs"
           disabled={busy}
         />
         <Button size="sm" onClick={send} disabled={busy || !input.trim()} className="h-8 text-xs px-3">
-          Decir
+          Say
         </Button>
       </div>
     </div>
   );
 }
 
-/* ────────────── MENSAJE ────────────── */
+/* ────────────── MESSAGE ────────────── */
 
 function Message({ message }: { message: UIMessage }) {
   const text = message.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
