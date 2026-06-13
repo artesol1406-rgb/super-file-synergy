@@ -1,20 +1,20 @@
 /**
- * Motor Amalgam V11 (simplificado) — Gramática de coherencia.
+ * Amalgam Engine V11 (simplified) — a grammar of coherence.
  *
- * Estado del observador Ψ: 7 chakras (activación / bloqueo / coherencia),
- * coherencia global, tensión (τ), energía de curvatura (E_curv),
- * rigidez dinámica (κ) y suerte (L).
+ * Observer state Ψ: 7 chakras (activation / block / coherence),
+ * global coherence, tension (τ), curvature energy (E_curv),
+ * dynamic rigidity (κ) and luck (L).
  *
- * Vive en el cliente, evoluciona por turno según la acción del jugador y se
- * envía al Guardián como brújula INVISIBLE (Ley de Espejo Total): el mundo
- * refleja Ψ sin que la mecánica se nombre jamás dentro de la ficción.
+ * It lives on the client, evolves each turn from the player's action and is
+ * sent to the Keeper as an INVISIBLE compass (Law of Total Mirror): the world
+ * reflects Ψ without the mechanic ever being named inside the fiction.
  */
 
 export type Chakra = {
   /** C1..C7 */
   key: string;
   name: string;
-  /** lo que despierta este centro, en una palabra */
+  /** what this center awakens, in one word */
   aspect: string;
   activation: number; // 0..1
   block: number; // 0..1
@@ -26,8 +26,8 @@ export type Psi = {
   chakras: Chakra[];
   coherence: number; // 0..1 global
   tension: number; // τ 0..1
-  curvature: number; // E_curv acumulada (>=0)
-  kappa: number; // rigidez 0.1..1
+  curvature: number; // E_curv accumulated (>=0)
+  kappa: number; // rigidity 0.1..1
   luck: number; // L 0..1
   cycle: number;
   highTensionStreak: number;
@@ -38,13 +38,13 @@ export type Psi = {
 const clamp = (n: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, n));
 
 const CHAKRA_DEFS: Omit<Chakra, "activation" | "block" | "coherence">[] = [
-  { key: "C1", name: "Raíz", aspect: "supervivencia" },
-  { key: "C2", name: "Sacro", aspect: "deseo" },
-  { key: "C3", name: "Plexo Solar", aspect: "voluntad" },
-  { key: "C4", name: "Corazón", aspect: "empatía" },
-  { key: "C5", name: "Garganta", aspect: "expresión" },
-  { key: "C6", name: "Tercer Ojo", aspect: "introspección" },
-  { key: "C7", name: "Corona", aspect: "trascendencia" },
+  { key: "C1", name: "Root", aspect: "survival" },
+  { key: "C2", name: "Sacral", aspect: "desire" },
+  { key: "C3", name: "Solar Plexus", aspect: "will" },
+  { key: "C4", name: "Heart", aspect: "empathy" },
+  { key: "C5", name: "Throat", aspect: "expression" },
+  { key: "C6", name: "Third Eye", aspect: "insight" },
+  { key: "C7", name: "Crown", aspect: "transcendence" },
 ];
 
 export function createPsi(): Psi {
@@ -68,48 +68,48 @@ function normalize(s: string): string {
 }
 
 type Group =
-  | "fuerza"
-  | "calma"
-  | "empatia"
-  | "expresion"
-  | "deseo"
-  | "negacion"
-  | "introspeccion";
+  | "force"
+  | "calm"
+  | "empathy"
+  | "expression"
+  | "desire"
+  | "denial"
+  | "introspection";
 
 const KEYWORDS: Record<Group, string[]> = {
-  fuerza: [
-    "atac", "golpe", "forz", "domin", "control", "romp", "mat", "destru", "lucha", "pele",
-    "empuj", "grit de guerra", "attack", "force", "control", "break", "kill", "fight", "strike", "smash",
+  force: [
+    "attack", "force", "control", "break", "kill", "fight", "strike", "smash", "dominate", "crush",
+    "atac", "golpe", "forz", "domin", "romp", "mat", "destru", "lucha", "pele", "empuj",
   ],
-  calma: [
-    "medit", "observ", "respir", "esper", "suelt", "descans", "calm", "rend", "contempl", "quiet",
-    "paus", "meditate", "observe", "breathe", "rest", "wait", "release", "watch", "still",
+  calm: [
+    "meditate", "observe", "breathe", "rest", "wait", "release", "watch", "still", "pause", "calm",
+    "medit", "observ", "respir", "esper", "suelt", "descans", "rend", "contempl", "quiet",
   ],
-  empatia: [
-    "ayud", "abraz", "escuch", "consuel", "perdon", "am ", "amar", "amo", "cuid", "acompañ", "salv", "protej",
-    "help", "hug", "listen", "comfort", "forgive", "love", "care", "protect", "save",
+  empathy: [
+    "help", "hug", "listen", "comfort", "forgive", "love", "care", "protect", "save", "tend",
+    "ayud", "abraz", "escuch", "consuel", "perdon", "amar", "amo", "cuid", "acompañ", "salv", "protej",
   ],
-  expresion: [
+  expression: [
+    "speak", "say", "sing", "shout", "ask", "tell", "confess", "declare", "answer", "scream",
     "dec", "habl", "confies", "confes", "grit", "cant", "cuent", "declar", "pregunt", "respond",
-    "speak", "say", "sing", "shout", "ask", "tell", "confess",
   ],
-  deseo: [
-    "dese", "toc", "bes", "foll", "sexo", "com", "beb", "abr la boc", "saborea", "acarici", "seduc",
-    "desire", "kiss", "touch", "fuck", "eat", "drink", "taste", "seduce",
+  desire: [
+    "desire", "kiss", "touch", "fuck", "eat", "drink", "taste", "seduce", "crave", "caress",
+    "dese", "toc", "bes", "foll", "sexo", "com", "beb", "saborea", "acarici", "seduc",
   ],
-  negacion: [
+  denial: [
+    "flee", "hide", "deny", "ignore", "lie", "avoid", "retreat", "abandon", "run", "refuse",
     "huy", "huir", "escond", "nieg", "negar", "ignor", "mient", "mentir", "evit", "rehus", "retroced", "abandon",
-    "flee", "hide", "deny", "ignore", "lie", "avoid", "retreat", "abandon",
   ],
-  introspeccion: [
-    "piens", "pens", "recuerd", "sueñ", "imagin", "mir dentro", "reflexion", "record", "dud",
-    "think", "remember", "dream", "imagine", "reflect", "doubt",
+  introspection: [
+    "think", "remember", "dream", "imagine", "reflect", "doubt", "wonder", "ponder",
+    "piens", "pens", "recuerd", "sueñ", "imagin", "reflexion", "record", "dud",
   ],
 };
 
 function detectGroup(action: string): Group {
   const n = normalize(action);
-  let best: Group = "introspeccion";
+  let best: Group = "introspection";
   let bestScore = 0;
   (Object.keys(KEYWORDS) as Group[]).forEach((g) => {
     const score = KEYWORDS[g].reduce((acc, kw) => (n.includes(normalize(kw)) ? acc + 1 : acc), 0);
@@ -121,7 +121,7 @@ function detectGroup(action: string): Group {
   return best;
 }
 
-// índice de chakra por clave (0-based)
+// chakra index by key (0-based)
 const idx = (key: string) => CHAKRA_DEFS.findIndex((c) => c.key === key);
 
 function bump(ch: Chakra, dAct: number, dBlock: number, dCoh: number): Chakra {
@@ -136,7 +136,7 @@ function bump(ch: Chakra, dAct: number, dBlock: number, dCoh: number): Chakra {
 export type StepResult = { psi: Psi; directives: string[] };
 
 /**
- * Avanza el estado un ciclo según la acción del jugador.
+ * Advance the state by one cycle from the player's action.
  */
 export function stepPsi(prev: Psi, action: string, _mode: string): StepResult {
   const group = detectGroup(action);
@@ -147,45 +147,45 @@ export function stepPsi(prev: Psi, action: string, _mode: string): StepResult {
   const noise = () => (Math.random() - 0.5) * 0.06;
 
   switch (group) {
-    case "fuerza":
+    case "force":
       chakras[idx("C3")] = bump(chakras[idx("C3")], 0.16, 0.02, -0.04);
       chakras[idx("C6")] = bump(chakras[idx("C6")], -0.08, 0.04, -0.03);
       chakras[idx("C1")] = bump(chakras[idx("C1")], 0.06, 0, 0);
       break;
-    case "calma":
+    case "calm":
       chakras[idx("C6")] = bump(chakras[idx("C6")], 0.1, -0.05, 0.06);
       chakras[idx("C7")] = bump(chakras[idx("C7")], 0.1, -0.05, 0.06);
       chakras = chakras.map((c) => bump(c, 0, -0.03, 0.02));
       break;
-    case "empatia":
+    case "empathy":
       chakras[idx("C4")] = bump(chakras[idx("C4")], 0.16, -0.04, 0.06);
       chakras[idx("C2")] = bump(chakras[idx("C2")], 0.05, 0, 0.02);
       break;
-    case "expresion":
+    case "expression":
       chakras[idx("C5")] = bump(chakras[idx("C5")], 0.16, -0.06, 0.05);
       break;
-    case "deseo":
+    case "desire":
       chakras[idx("C2")] = bump(chakras[idx("C2")], 0.16, -0.02, 0.02);
       chakras[idx("C1")] = bump(chakras[idx("C1")], 0.05, 0, 0);
       break;
-    case "negacion":
+    case "denial":
       chakras = chakras.map((c) => bump(c, -0.02, 0.07, -0.05));
       break;
-    case "introspeccion":
+    case "introspection":
       chakras[idx("C6")] = bump(chakras[idx("C6")], 0.12, -0.02, 0.05);
       break;
   }
 
-  // ── rigidez κ: se ablanda con la calma, se endurece con la repetición ──
+  // ── rigidity κ: softens with calm, hardens with repetition ──
   let kappa = prev.kappa;
-  if (group === "calma") kappa = clamp(kappa - 0.05, 0.1, 1);
+  if (group === "calm") kappa = clamp(kappa - 0.05, 0.1, 1);
   if (repeat) kappa = clamp(kappa + 0.1, 0.1, 1);
 
-  // ── métricas derivadas ──
+  // ── derived metrics ──
   const acts = chakras.map((c) => c.activation);
   const meanAct = acts.reduce((a, b) => a + b, 0) / acts.length;
   const variance = acts.reduce((a, b) => a + (b - meanAct) ** 2, 0) / acts.length;
-  const balance = clamp(1 - variance * 4); // varianza baja => balance alto
+  const balance = clamp(1 - variance * 4); // low variance => high balance
   const meanCoh = chakras.reduce((a, c) => a + c.coherence, 0) / chakras.length;
   const meanBlock = chakras.reduce((a, c) => a + c.block, 0) / chakras.length;
 
@@ -193,12 +193,12 @@ export function stepPsi(prev: Psi, action: string, _mode: string): StepResult {
   const tension = clamp(meanBlock * 0.55 + (1 - balance) * 0.45);
   const luck = clamp(coherence * 0.7 + balance * 0.3 + noise());
 
-  // ── energía de curvatura: tensión histórica acumulada (escala κ) ──
+  // ── curvature energy: accumulated historical tension (scaled by κ) ──
   const delta = before.reduce((a, b, i) => a + Math.abs(b - acts[i]), 0);
   const curvStep = delta * (0.5 + kappa);
   const curvature = prev.curvature + curvStep;
 
-  // ── rachas para eventos correctivos ──
+  // ── streaks for corrective events ──
   const highTensionStreak = tension > 0.7 ? prev.highTensionStreak + 1 : 0;
   const lowCurvatureStreak = curvStep < 0.04 ? prev.lowCurvatureStreak + 1 : 0;
 
@@ -222,62 +222,62 @@ export function stepPsi(prev: Psi, action: string, _mode: string): StepResult {
 function buildDirectives(psi: Psi): string[] {
   const d: string[] = [];
 
-  // tono de renderizado según coherencia (Addendum: lenguaje de renderizado)
+  // render tone by coherence (Addendum: rendering language)
   if (psi.coherence > 0.66) {
-    d.push("Tono del mundo: abierto, fluido, resonante, claro. Hay poca fricción; el mundo responde con apertura.");
+    d.push("World tone: open, flowing, resonant, clear. Little friction; the world answers with openness.");
   } else if (psi.coherence < 0.4) {
-    d.push("Tono del mundo: pesado, denso, cerrado, opaco. Las cosas cuestan más, los caminos se estrechan.");
+    d.push("World tone: heavy, dense, closed, opaque. Things cost more, paths narrow.");
   } else {
-    d.push("Tono del mundo: variable y ambiguo; ni del todo abierto ni del todo cerrado.");
+    d.push("World tone: variable and ambiguous; neither fully open nor fully closed.");
   }
 
-  // suerte L
-  if (psi.luck > 0.66) d.push("La suerte está abierta: permite una sincronicidad afortunada (un recurso, una apertura, un aliado fortuito).");
-  else if (psi.luck < 0.35) d.push("La suerte está cerrada: las casualidades no favorecen; lo que podía salir bien se tuerce.");
+  // luck L
+  if (psi.luck > 0.66) d.push("Luck is open: allow a fortunate synchronicity (a resource, an opening, a chance ally).");
+  else if (psi.luck < 0.35) d.push("Luck is closed: coincidence does not favor; what could go well goes awry.");
 
-  // evento correctivo por tensión sostenida
+  // corrective event from sustained tension
   if (psi.highTensionStreak >= 3) {
-    d.push("SISTEMA CORRECTIVO: la tensión persiste. Deja que un obstáculo o un patrón se repita, que el entorno se vuelva más denso, presionando con suavidad hacia el cambio. No castigues; refleja y amplifica. Nunca expliques por qué.");
+    d.push("CORRECTIVE SYSTEM: tension persists. Let an obstacle or pattern recur, let the surroundings grow denser, pressing gently toward change. Do not punish; reflect and amplify. Never explain why.");
   }
 
-  // ruido fértil por curvatura plana
+  // fertile noise from flat curvature
   if (psi.lowCurvatureStreak >= 4) {
-    d.push("RUIDO FÉRTIL: el camino se ha vuelto demasiado plano. Introduce un elemento de sorpresa que reintroduzca movimiento: un encuentro inesperado, una grieta en lo previsible. Sin violencia gratuita.");
+    d.push("FERTILE NOISE: the path has gone too flat. Introduce an element of surprise that reintroduces movement: an unexpected encounter, a crack in the predictable. No gratuitous violence.");
   }
 
-  // chakra dominante / más bloqueado como atractor simbólico
+  // dominant / most-blocked chakra as symbolic attractor
   const dom = [...psi.chakras].sort((a, b) => b.activation - a.activation)[0];
   const blocked = [...psi.chakras].sort((a, b) => b.block - a.block)[0];
-  d.push(`Centro encendido: ${dom.name} (${dom.aspect}). Deja que la escena vibre con ese aspecto, encarnado como lugar, criatura, clima u objeto — nunca nombrado.`);
+  d.push(`Lit center: ${dom.name} (${dom.aspect}). Let the scene vibrate with that aspect, embodied as place, creature, weather or object — never named.`);
   if (blocked.block > 0.45) {
-    d.push(`Centro bloqueado: ${blocked.name} (${blocked.aspect}). Que el mundo roce esa herida sin señalarla.`);
+    d.push(`Blocked center: ${blocked.name} (${blocked.aspect}). Let the world brush that wound without pointing at it.`);
   }
 
   return d;
 }
 
 /**
- * Bloque en español que se inyecta en el system prompt del Guardián.
- * Es una brújula INVISIBLE: guía la escena, jamás se menciona en la ficción.
+ * English block injected into the Keeper's system prompt.
+ * It is an INVISIBLE compass: it steers the scene, never mentioned in the fiction.
  */
 export function summarizeForPrompt(psi: Psi, directives: string[]): string {
-  return `# Brújula interna del jugador (Amalgam — INVISIBLE, jamás nombrar en la ficción)
-Este es el estado de coherencia (Ψ) del jugador en este instante. Úsalo SOLO para decidir hacia qué colapsa la escena: qué aparece, con qué densidad, con qué suerte. Nunca menciones chakras, coherencia, tensión, energía, fórmulas ni "tu interior". El mundo es el único lenguaje: firelight, acero, niebla, sangre, piel.
+  return `# Player's inner compass (Amalgam — INVISIBLE, never name it in the fiction)
+This is the player's coherence state (Ψ) right now. Use it ONLY to decide what the scene collapses toward: what appears, with what density, with what luck. Never mention chakras, coherence, tension, energy, formulas, or "your inner world". The world is the only language: firelight, steel, fog, blood, skin.
 
-- Coherencia global: ${(psi.coherence * 100).toFixed(0)}%
-- Tensión (τ): ${(psi.tension * 100).toFixed(0)}%
-- Suerte (L): ${(psi.luck * 100).toFixed(0)}%
-- Rigidez (κ): ${psi.kappa.toFixed(2)} ${psi.kappa > 0.7 ? "(rígido, le cuesta fluir)" : psi.kappa < 0.35 ? "(flexible, fluye)" : ""}
+- Global coherence: ${(psi.coherence * 100).toFixed(0)}%
+- Tension (τ): ${(psi.tension * 100).toFixed(0)}%
+- Luck (L): ${(psi.luck * 100).toFixed(0)}%
+- Rigidity (κ): ${psi.kappa.toFixed(2)} ${psi.kappa > 0.7 ? "(rigid, struggles to flow)" : psi.kappa < 0.35 ? "(flexible, flows)" : ""}
 
-Directivas de manifestación para este turno:
+Manifestation directives for this turn:
 ${directives.map((x) => `- ${x}`).join("\n")}`;
 }
 
-/** Nota poética breve para el panel visible "Espejo Interior". */
+/** Short poetic note for the visible "Inner Mirror" panel. */
 export function poeticNote(psi: Psi): string {
-  if (psi.coherence > 0.7) return "Las aguas internas están quietas; el mundo te responde sin resistencia.";
-  if (psi.tension > 0.7) return "Algo se tensa por dentro; el mundo se vuelve denso a tu alrededor.";
-  if (psi.luck > 0.7) return "Hay sincronicidad en el aire: las puertas se abren solas.";
-  if (psi.coherence < 0.4) return "Hay niebla en el centro; los caminos se estrechan hasta que cambies.";
-  return "El espejo oscila, buscando su forma.";
+  if (psi.coherence > 0.7) return "The inner waters are still; the world answers without resistance.";
+  if (psi.tension > 0.7) return "Something tightens within; the world grows dense around you.";
+  if (psi.luck > 0.7) return "There is synchronicity in the air: doors open on their own.";
+  if (psi.coherence < 0.4) return "There is fog at the center; the paths narrow until you change.";
+  return "The mirror wavers, seeking its shape.";
 }
