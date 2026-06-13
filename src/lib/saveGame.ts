@@ -122,17 +122,17 @@ export async function exportMemoryPdf(state: SaveState): Promise<Uint8Array> {
     y -= 6;
   }
 
-  // Datos de reanudación: en metadatos Y como marcador visible (parseo robusto)
+  // Resume data: in metadata AND as a visible marker (robust parsing)
   const json = JSON.stringify(state);
   const b64 = toBase64(json);
 
-  pdf.setTitle(`El Guardián del Espejo — ${c.name ?? "memoria"}`);
-  pdf.setAuthor(c.name ?? "viajera");
+  pdf.setTitle(`The Mirror-Keeper — ${c.name ?? "memory"}`);
+  pdf.setAuthor(c.name ?? "traveler");
   pdf.setSubject("guardian-del-espejo-save-v1");
   pdf.setKeywords([MARKER_OPEN + b64 + MARKER_CLOSE]);
 
   newPage();
-  drawLines(["— datos de reanudación —"], italic, 9, muted, 4);
+  drawLines(["— resume data —"], italic, 9, muted, 4);
   const chunks = b64.match(/.{1,90}/g) ?? [];
   drawLines([MARKER_OPEN], font, 6, muted, 2);
   for (const ch of chunks) drawLines([ch], font, 6, muted, 1);
