@@ -77,17 +77,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "El Guardián del Espejo" },
+      { title: "The Mirror-Keeper — AI shadow-work narrative RPG" },
       {
         name: "description",
         content:
-          "RPG narrativo de trabajo de sombra: cada criatura y extraño es un espejo de lo que llevas dentro. Motor Amalgam + narración con IA.",
+          "A narrative shadow-work RPG: every creature and stranger is a mirror of what you carry within. Amalgam coherence engine + AI storytelling.",
       },
-      { name: "author", content: "El Guardián del Espejo" },
-      { property: "og:title", content: "El Guardián del Espejo" },
+      { name: "author", content: "The Mirror-Keeper" },
+      { property: "og:title", content: "The Mirror-Keeper" },
       {
         property: "og:description",
-        content: "RPG narrativo donde el mundo refleja tu estado interior, guiado por un motor de coherencia Amalgam.",
+        content: "A narrative RPG where the world reflects your inner state, guided by the Amalgam coherence engine.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
