@@ -1,6 +1,6 @@
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { streamText, type ModelMessage } from "ai";
 
 type World = {
   title?: string;
@@ -11,7 +11,7 @@ type World = {
 };
 
 type Body = {
-  messages?: unknown;
+  messages?: { role: "user" | "assistant"; content: string }[];
   world?: World;
   compass?: string;
   skeleton?: string;
@@ -60,16 +60,11 @@ export const Route = createFileRoute("/api/chat")({
         const result = streamText({
           model: gateway("google/gemini-3-flash-preview"),
           system: SYSTEM(world || {}, compass, skeleton),
-          messages: await convertToModelMessages(messages as UIMessage[]),
+          messages: messages as ModelMessage[],
+          onError: (e) => console.error("chat error", e),
         });
 
-        return result.toUIMessageStreamResponse({
-          originalMessages: messages as UIMessage[],
-          onError: (e) => {
-            console.error("chat error", e);
-            return "The world blurs for a moment. Try again.";
-          },
-        });
+        return result.toTextStreamResponse();
       },
     },
   },
