@@ -77,33 +77,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "The Mirror-Keeper — AI shadow-work narrative RPG" },
+      { title: "AMALGAM — a procedurally generated narrative world" },
       {
         name: "description",
         content:
-          "A narrative shadow-work RPG: every creature and stranger is a mirror of what you carry within. Amalgam coherence engine + AI storytelling.",
+          "Enter any universe by naming a seed. AMALGAM procedurally generates the world, its map and its cast — every creature and stranger reflects what you carry within.",
       },
-      { name: "author", content: "The Mirror-Keeper" },
-      { property: "og:title", content: "The Mirror-Keeper — AI shadow-work narrative RPG" },
+      { name: "author", content: "AMALGAM" },
+      { property: "og:title", content: "AMALGAM — a procedurally generated narrative world" },
       {
         property: "og:description",
-        content: "A narrative RPG where the world reflects your inner state, guided by the Amalgam coherence engine.",
+        content: "Name a universe and walk a procedurally generated world whose mood, map and people reflect your inner state.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "The Mirror-Keeper — AI shadow-work narrative RPG" },
-      { name: "description", content: "All Files Masterpiece organizes and visualizes your digital assets with a unique generative intro animation." },
-      { property: "og:description", content: "All Files Masterpiece organizes and visualizes your digital assets with a unique generative intro animation." },
-      { name: "twitter:description", content: "All Files Masterpiece organizes and visualizes your digital assets with a unique generative intro animation." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2ca39f84-7695-4ccb-8738-0c11c4a39bdd/id-preview-bd632852--bfe68eb3-1e7b-40ff-bc9a-3e9390aa33c2.lovable.app-1781314891526.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2ca39f84-7695-4ccb-8738-0c11c4a39bdd/id-preview-bd632852--bfe68eb3-1e7b-40ff-bc9a-3e9390aa33c2.lovable.app-1781314891526.png" },
+      { name: "twitter:title", content: "AMALGAM — a procedurally generated narrative world" },
+      { name: "twitter:description", content: "Name a universe and walk a procedurally generated world whose mood, map and people reflect your inner state." },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=MedievalSharp&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Roboto+Mono:wght@400;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=MedievalSharp&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Roboto+Mono:wght@400;700&display=swap",
       },
       {
         rel: "stylesheet",
