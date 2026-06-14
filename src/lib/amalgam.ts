@@ -1,283 +1,350 @@
 /**
- * Amalgam Engine V11 (simplified) — a grammar of coherence.
+ * AMALGAM ENGINE V8 — faithful TypeScript port of the PDF "Narrative Core".
  *
- * Observer state Ψ: 7 chakras (activation / block / coherence),
- * global coherence, tension (τ), curvature energy (E_curv),
- * dynamic rigidity (κ) and luck (L).
+ * Structural silence: this state is NEVER shown to the player as numbers.
+ * It is an invisible compass that steers what the world collapses toward.
  *
- * It lives on the client, evolves each turn from the player's action and is
- * sent to the Keeper as an INVISIBLE compass (Law of Total Mirror): the world
- * reflects Ψ without the mechanic ever being named inside the fiction.
+ * State:
+ *  - CP: 7-channel temperament vector (0..1), seeded from the universe seed.
+ *  - K : karmic memory matrix (7x7), nudged by APR toward global coherence 0.5.
+ *  - T : tension tensor (7x7), |CP[i]-CP[j]| modulated by K.
+ *  - life arcana: the player's fixed destiny (derived from the seed).
+ *  - active arcana / hero stage: evolve each step.
  */
 
-export type Chakra = {
-  /** C1..C7 */
-  key: string;
-  name: string;
-  /** what this center awakens, in one word */
-  aspect: string;
-  activation: number; // 0..1
-  block: number; // 0..1
-  coherence: number; // 0..1
+import { hashSeed, mulberry32, type Rng } from "./rng";
+
+export const CP_CHANNELS = [
+  "Survival",
+  "Desire",
+  "Will",
+  "Heart",
+  "Voice",
+  "Vision",
+  "Spirit",
+] as const;
+
+// 22 major arcana (0..21)
+export const ARCANA = [
+  "The Fool",
+  "The Magician",
+  "The High Priestess",
+  "The Empress",
+  "The Emperor",
+  "The Hierophant",
+  "The Lovers",
+  "The Chariot",
+  "Justice",
+  "The Hermit",
+  "Wheel of Fortune",
+  "Strength",
+  "The Hanged Man",
+  "Death",
+  "Temperance",
+  "The Devil",
+  "The Tower",
+  "The Star",
+  "The Moon",
+  "The Sun",
+  "Judgement",
+  "The World",
+] as const;
+
+export const OPPOSITES: Record<string, string> = {
+  "The Fool": "The World",
+  "The Magician": "The Moon",
+  "The High Priestess": "The Sun",
+  "The Empress": "The Tower",
+  "The Emperor": "The Devil",
+  "The Hierophant": "Death",
+  "The Lovers": "Judgement",
+  "The Chariot": "The Hanged Man",
+  Justice: "Strength",
+  "The Hermit": "Wheel of Fortune",
+  "Wheel of Fortune": "The Hermit",
+  Strength: "Justice",
+  "The Hanged Man": "The Chariot",
+  Death: "The Hierophant",
+  Temperance: "The Star",
+  "The Devil": "The Emperor",
+  "The Tower": "The Empress",
+  "The Star": "Temperance",
+  "The Moon": "The Magician",
+  "The Sun": "The High Priestess",
+  Judgement: "The Lovers",
+  "The World": "The Fool",
 };
 
-export type Psi = {
-  version: 1;
-  chakras: Chakra[];
-  coherence: number; // 0..1 global
-  tension: number; // τ 0..1
-  curvature: number; // E_curv accumulated (>=0)
-  kappa: number; // rigidity 0.1..1
-  luck: number; // L 0..1
-  cycle: number;
-  highTensionStreak: number;
-  lowCurvatureStreak: number;
-  lastGroup: string | null;
+// 32 personality signatures (16 polar L/E pairs)
+export const PERSONALITY_32: Record<string, string> = {
+  P1_L: "structural control",
+  P1_E: "control anxiety",
+  P2_L: "order",
+  P2_E: "trust in flow",
+  P3_L: "expansion",
+  P3_E: "contraction",
+  P4_L: "light",
+  P4_E: "shadow",
+  P5_L: "connection",
+  P5_E: "isolation",
+  P6_L: "action",
+  P6_E: "reaction",
+  P7_L: "creation",
+  P7_E: "dissolution",
+  P8_L: "memory",
+  P8_E: "forgetting",
+  P9_L: "the word",
+  P9_E: "silence",
+  P10_L: "form",
+  P10_E: "void",
+  P11_L: "center",
+  P11_E: "periphery",
+  P12_L: "time",
+  P12_E: "eternity",
+  P13_L: "life",
+  P13_E: "death",
+  P14_L: "wisdom",
+  P14_E: "madness",
+  P15_L: "power",
+  P15_E: "service",
+  P16_L: "identity",
+  P16_E: "dissolution of identity",
+};
+
+export const HERO_STAGES = [
+  "Ordinary world",
+  "Call to adventure",
+  "Refusal of the call",
+  "Meeting the mentor",
+  "Crossing the threshold",
+  "Tests, allies, enemies",
+  "Approach",
+  "The ordeal",
+  "The reward",
+  "The road back",
+  "Resurrection",
+  "Return with the elixir",
+] as const;
+
+export type NarrativeMode = "integration" | "rupture" | "latent";
+
+export type AmalgamState = {
+  version: 8;
+  seed: string;
+  cp: number[]; // 7
+  K: number[][]; // 7x7 karmic memory
+  T: number[][]; // 7x7 tension
+  step: number;
+  lifeArcana: number; // fixed destiny 0..21
+};
+
+export const ACTIONS = ["explore", "talk", "fight", "flee", "meditate"] as const;
+export type GameAction = (typeof ACTIONS)[number];
+
+const FORCE: Record<string, number> = {
+  explore: 0.05,
+  talk: 0.02,
+  fight: -0.1,
+  flee: -0.05,
+  meditate: 0.1,
+  default: 0,
 };
 
 const clamp = (n: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, n));
 
-const CHAKRA_DEFS: Omit<Chakra, "activation" | "block" | "coherence">[] = [
-  { key: "C1", name: "Root", aspect: "survival" },
-  { key: "C2", name: "Sacral", aspect: "desire" },
-  { key: "C3", name: "Solar Plexus", aspect: "will" },
-  { key: "C4", name: "Heart", aspect: "empathy" },
-  { key: "C5", name: "Throat", aspect: "expression" },
-  { key: "C6", name: "Third Eye", aspect: "insight" },
-  { key: "C7", name: "Crown", aspect: "transcendence" },
-];
+function mean(a: number[]): number {
+  return a.reduce((x, y) => x + y, 0) / a.length;
+}
+function variance(a: number[]): number {
+  const m = mean(a);
+  return a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length;
+}
 
-export function createPsi(): Psi {
+function zeros(n: number): number[][] {
+  return Array.from({ length: n }, () => new Array(n).fill(0));
+}
+
+/** Reduce a number to a single 0..21 arcana index (theosophical reduction). */
+export function lifeArcana(num: number): number {
+  let n = Math.abs(Math.floor(num));
+  while (n > 21) {
+    n = String(n)
+      .split("")
+      .reduce((acc, d) => acc + Number(d), 0);
+  }
+  return n;
+}
+
+/** Create the initial state from a universe seed (no birthdate needed). */
+export function createState(seed: string): AmalgamState {
+  const rng: Rng = mulberry32(hashSeed(seed || "void"));
+  const cp = Array.from({ length: 7 }, () => clamp(0.25 + rng() * 0.5));
+  const h = hashSeed(seed || "void");
   return {
-    version: 1,
-    chakras: CHAKRA_DEFS.map((c) => ({ ...c, activation: 0.42, block: 0.12, coherence: 0.5 })),
-    coherence: 0.5,
-    tension: 0.25,
-    curvature: 0,
-    kappa: 0.5,
-    luck: 0.5,
-    cycle: 0,
-    highTensionStreak: 0,
-    lowCurvatureStreak: 0,
-    lastGroup: null,
+    version: 8,
+    seed,
+    cp,
+    K: zeros(7),
+    T: zeros(7),
+    step: 0,
+    lifeArcana: lifeArcana(h % 100),
   };
 }
 
-function normalize(s: string): string {
-  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+/** Variance-minimizing flow: pull each channel toward the mean (coherence drive). */
+function flow(cp: number[]): number[] {
+  const m = mean(cp);
+  return cp.map((v) => (m - v) * 0.18);
 }
 
-type Group =
-  | "force"
-  | "calm"
-  | "empathy"
-  | "expression"
-  | "desire"
-  | "denial"
-  | "introspection";
-
-const KEYWORDS: Record<Group, string[]> = {
-  force: [
-    "attack", "force", "control", "break", "kill", "fight", "strike", "smash", "dominate", "crush",
-    "atac", "golpe", "forz", "domin", "romp", "mat", "destru", "lucha", "pele", "empuj",
-  ],
-  calm: [
-    "meditate", "observe", "breathe", "rest", "wait", "release", "watch", "still", "pause", "calm",
-    "medit", "observ", "respir", "esper", "suelt", "descans", "rend", "contempl", "quiet",
-  ],
-  empathy: [
-    "help", "hug", "listen", "comfort", "forgive", "love", "care", "protect", "save", "tend",
-    "ayud", "abraz", "escuch", "consuel", "perdon", "amar", "amo", "cuid", "acompañ", "salv", "protej",
-  ],
-  expression: [
-    "speak", "say", "sing", "shout", "ask", "tell", "confess", "declare", "answer", "scream",
-    "dec", "habl", "confies", "confes", "grit", "cant", "cuent", "declar", "pregunt", "respond",
-  ],
-  desire: [
-    "desire", "kiss", "touch", "fuck", "eat", "drink", "taste", "seduce", "crave", "caress",
-    "dese", "toc", "bes", "foll", "sexo", "com", "beb", "saborea", "acarici", "seduc",
-  ],
-  denial: [
-    "flee", "hide", "deny", "ignore", "lie", "avoid", "retreat", "abandon", "run", "refuse",
-    "huy", "huir", "escond", "nieg", "negar", "ignor", "mient", "mentir", "evit", "rehus", "retroced", "abandon",
-  ],
-  introspection: [
-    "think", "remember", "dream", "imagine", "reflect", "doubt", "wonder", "ponder",
-    "piens", "pens", "recuerd", "sueñ", "imagin", "reflexion", "record", "dud",
-  ],
+/** channels that a given action energizes most */
+const ACTION_CHANNELS: Record<string, number[]> = {
+  explore: [5, 1], // Vision, Desire
+  talk: [4, 3], // Voice, Heart
+  fight: [2, 0], // Will, Survival
+  flee: [0, 6], // Survival, Spirit
+  meditate: [6, 5], // Spirit, Vision
 };
 
-function detectGroup(action: string): Group {
-  const n = normalize(action);
-  let best: Group = "introspection";
-  let bestScore = 0;
-  (Object.keys(KEYWORDS) as Group[]).forEach((g) => {
-    const score = KEYWORDS[g].reduce((acc, kw) => (n.includes(normalize(kw)) ? acc + 1 : acc), 0);
-    if (score > bestScore) {
-      best = g;
-      bestScore = score;
-    }
+export function coherence(state: AmalgamState): number {
+  return clamp(1 - variance(state.cp));
+}
+
+export function modeOf(coh: number): NarrativeMode {
+  if (coh > 0.6) return "integration";
+  if (coh < 0.4) return "rupture";
+  return "latent";
+}
+
+export function heroStage(step: number): string {
+  return HERO_STAGES[step % HERO_STAGES.length];
+}
+
+/** active arcana derived from the live CP mean (for scene flavor) */
+export function activeArcana(state: AmalgamState): number {
+  return Math.floor(mean(state.cp) * 21.999);
+}
+
+export function signatureOf(cp: number[]): { key: string; value: string } {
+  const keys = Object.keys(PERSONALITY_32);
+  const idx = Math.min(keys.length - 1, Math.floor(mean(cp) * (keys.length - 1)));
+  const key = keys[idx];
+  return { key, value: PERSONALITY_32[key] };
+}
+
+function tensionTensor(state: AmalgamState): number[][] {
+  const { cp, K } = state;
+  const T = zeros(7);
+  for (let i = 0; i < 7; i++)
+    for (let j = 0; j < 7; j++) T[i][j] = Math.abs(cp[i] - cp[j]) * (1 + K[i][j]);
+  return T;
+}
+
+function aprUpdate(state: AmalgamState, target = 0.5): number[][] {
+  const cur = 1 - variance(state.cp);
+  const err = target - cur;
+  return state.K.map((row) => row.map((k) => clamp(k + 0.01 * err)));
+}
+
+export type StepResult = {
+  state: AmalgamState;
+  mode: NarrativeMode;
+  coherence: number;
+  stage: string;
+  active: number;
+};
+
+/** Advance one cycle from the player's action. Returns a NEW state. */
+export function step(prev: AmalgamState, action: string): StepResult {
+  const a = action.toLowerCase();
+  const force = a in FORCE ? FORCE[a] : FORCE.default;
+  const fl = flow(prev.cp);
+  const channels = ACTION_CHANNELS[a] ?? [];
+
+  const cp = prev.cp.map((v, i) => {
+    const emphasis = channels.includes(i) ? force * 1.6 : force * 0.4;
+    return clamp(v + fl[i] + emphasis);
   });
-  return best;
-}
 
-// chakra index by key (0-based)
-const idx = (key: string) => CHAKRA_DEFS.findIndex((c) => c.key === key);
-
-function bump(ch: Chakra, dAct: number, dBlock: number, dCoh: number): Chakra {
-  return {
-    ...ch,
-    activation: clamp(ch.activation + dAct),
-    block: clamp(ch.block + dBlock),
-    coherence: clamp(ch.coherence + dCoh),
-  };
-}
-
-export type StepResult = { psi: Psi; directives: string[] };
-
-/**
- * Advance the state by one cycle from the player's action.
- */
-export function stepPsi(prev: Psi, action: string, _mode: string): StepResult {
-  const group = detectGroup(action);
-  const before = prev.chakras.map((c) => c.activation);
-  let chakras = prev.chakras.map((c) => ({ ...c }));
-
-  const repeat = prev.lastGroup === group;
-  const noise = () => (Math.random() - 0.5) * 0.06;
-
-  switch (group) {
-    case "force":
-      chakras[idx("C3")] = bump(chakras[idx("C3")], 0.16, 0.02, -0.04);
-      chakras[idx("C6")] = bump(chakras[idx("C6")], -0.08, 0.04, -0.03);
-      chakras[idx("C1")] = bump(chakras[idx("C1")], 0.06, 0, 0);
-      break;
-    case "calm":
-      chakras[idx("C6")] = bump(chakras[idx("C6")], 0.1, -0.05, 0.06);
-      chakras[idx("C7")] = bump(chakras[idx("C7")], 0.1, -0.05, 0.06);
-      chakras = chakras.map((c) => bump(c, 0, -0.03, 0.02));
-      break;
-    case "empathy":
-      chakras[idx("C4")] = bump(chakras[idx("C4")], 0.16, -0.04, 0.06);
-      chakras[idx("C2")] = bump(chakras[idx("C2")], 0.05, 0, 0.02);
-      break;
-    case "expression":
-      chakras[idx("C5")] = bump(chakras[idx("C5")], 0.16, -0.06, 0.05);
-      break;
-    case "desire":
-      chakras[idx("C2")] = bump(chakras[idx("C2")], 0.16, -0.02, 0.02);
-      chakras[idx("C1")] = bump(chakras[idx("C1")], 0.05, 0, 0);
-      break;
-    case "denial":
-      chakras = chakras.map((c) => bump(c, -0.02, 0.07, -0.05));
-      break;
-    case "introspection":
-      chakras[idx("C6")] = bump(chakras[idx("C6")], 0.12, -0.02, 0.05);
-      break;
-  }
-
-  // ── rigidity κ: softens with calm, hardens with repetition ──
-  let kappa = prev.kappa;
-  if (group === "calm") kappa = clamp(kappa - 0.05, 0.1, 1);
-  if (repeat) kappa = clamp(kappa + 0.1, 0.1, 1);
-
-  // ── derived metrics ──
-  const acts = chakras.map((c) => c.activation);
-  const meanAct = acts.reduce((a, b) => a + b, 0) / acts.length;
-  const variance = acts.reduce((a, b) => a + (b - meanAct) ** 2, 0) / acts.length;
-  const balance = clamp(1 - variance * 4); // low variance => high balance
-  const meanCoh = chakras.reduce((a, c) => a + c.coherence, 0) / chakras.length;
-  const meanBlock = chakras.reduce((a, c) => a + c.block, 0) / chakras.length;
-
-  const coherence = clamp(meanCoh * 0.55 + balance * 0.45 - meanBlock * 0.25 + noise());
-  const tension = clamp(meanBlock * 0.55 + (1 - balance) * 0.45);
-  const luck = clamp(coherence * 0.7 + balance * 0.3 + noise());
-
-  // ── curvature energy: accumulated historical tension (scaled by κ) ──
-  const delta = before.reduce((a, b, i) => a + Math.abs(b - acts[i]), 0);
-  const curvStep = delta * (0.5 + kappa);
-  const curvature = prev.curvature + curvStep;
-
-  // ── streaks for corrective events ──
-  const highTensionStreak = tension > 0.7 ? prev.highTensionStreak + 1 : 0;
-  const lowCurvatureStreak = curvStep < 0.04 ? prev.lowCurvatureStreak + 1 : 0;
-
-  const psi: Psi = {
+  const K = aprUpdate({ ...prev, cp });
+  const next: AmalgamState = {
     ...prev,
-    chakras,
-    coherence,
-    tension,
-    curvature,
-    kappa,
-    luck,
-    cycle: prev.cycle + 1,
-    highTensionStreak,
-    lowCurvatureStreak,
-    lastGroup: group,
+    cp,
+    K,
+    step: prev.step + 1,
   };
+  next.T = tensionTensor(next);
 
-  return { psi, directives: buildDirectives(psi) };
+  const coh = coherence(next);
+  return {
+    state: next,
+    mode: modeOf(coh),
+    coherence: coh,
+    stage: heroStage(next.step),
+    active: activeArcana(next),
+  };
 }
 
-function buildDirectives(psi: Psi): string[] {
-  const d: string[] = [];
-
-  // render tone by coherence (Addendum: rendering language)
-  if (psi.coherence > 0.66) {
-    d.push("World tone: open, flowing, resonant, clear. Little friction; the world answers with openness.");
-  } else if (psi.coherence < 0.4) {
-    d.push("World tone: heavy, dense, closed, opaque. Things cost more, paths narrow.");
-  } else {
-    d.push("World tone: variable and ambiguous; neither fully open nor fully closed.");
-  }
-
-  // luck L
-  if (psi.luck > 0.66) d.push("Luck is open: allow a fortunate synchronicity (a resource, an opening, a chance ally).");
-  else if (psi.luck < 0.35) d.push("Luck is closed: coincidence does not favor; what could go well goes awry.");
-
-  // corrective event from sustained tension
-  if (psi.highTensionStreak >= 3) {
-    d.push("CORRECTIVE SYSTEM: tension persists. Let an obstacle or pattern recur, let the surroundings grow denser, pressing gently toward change. Do not punish; reflect and amplify. Never explain why.");
-  }
-
-  // fertile noise from flat curvature
-  if (psi.lowCurvatureStreak >= 4) {
-    d.push("FERTILE NOISE: the path has gone too flat. Introduce an element of surprise that reintroduces movement: an unexpected encounter, a crack in the predictable. No gratuitous violence.");
-  }
-
-  // dominant / most-blocked chakra as symbolic attractor
-  const dom = [...psi.chakras].sort((a, b) => b.activation - a.activation)[0];
-  const blocked = [...psi.chakras].sort((a, b) => b.block - a.block)[0];
-  d.push(`Lit center: ${dom.name} (${dom.aspect}). Let the scene vibrate with that aspect, embodied as place, creature, weather or object — never named.`);
-  if (blocked.block > 0.45) {
-    d.push(`Blocked center: ${blocked.name} (${blocked.aspect}). Let the world brush that wound without pointing at it.`);
-  }
-
-  return d;
-}
+const MODE_TONE: Record<NarrativeMode, string> = {
+  integration:
+    "Tone: harmony and flow. Doors open, allies appear, the air feels clear. Reward small courage.",
+  rupture:
+    "Tone: conflict and fracture. The ground is unsteady, shadows lengthen, what was certain cracks. Do not punish — reflect and amplify the pattern.",
+  latent:
+    "Tone: latent tension, ambiguous. Neither open nor closed; something waits beneath the surface.",
+};
 
 /**
- * English block injected into the Keeper's system prompt.
- * It is an INVISIBLE compass: it steers the scene, never mentioned in the fiction.
+ * Invisible compass injected into the AI system prompt.
+ * Never reveals the engine; only steers the scene.
  */
-export function summarizeForPrompt(psi: Psi, directives: string[]): string {
-  return `# Player's inner compass (Amalgam — INVISIBLE, never name it in the fiction)
-This is the player's coherence state (Ψ) right now. Use it ONLY to decide what the scene collapses toward: what appears, with what density, with what luck. Never mention chakras, coherence, tension, energy, formulas, or "your inner world". The world is the only language: firelight, steel, fog, blood, skin.
+export function summarizeForPrompt(
+  res: StepResult,
+  world?: { tone?: string; locations?: string[]; characters?: string[]; objects?: string[] },
+): string {
+  const s = res.state;
+  const life = ARCANA[s.lifeArcana];
+  const active = ARCANA[res.active];
+  const opp = OPPOSITES[active] ?? "The Fool";
+  const sig = signatureOf(s.cp);
+  return `# Hidden compass (AMALGAM — INVISIBLE, never name it in the fiction)
+Use this only to decide what the scene collapses toward. Never mention numbers, arcana, tension, coherence, channels or "your inner world". The world is the only language.
 
-- Global coherence: ${(psi.coherence * 100).toFixed(0)}%
-- Tension (τ): ${(psi.tension * 100).toFixed(0)}%
-- Luck (L): ${(psi.luck * 100).toFixed(0)}%
-- Rigidity (κ): ${psi.kappa.toFixed(2)} ${psi.kappa > 0.7 ? "(rigid, struggles to flow)" : psi.kappa < 0.35 ? "(flexible, flows)" : ""}
-
-Manifestation directives for this turn:
-${directives.map((x) => `- ${x}`).join("\n")}`;
+- Hero stage: ${res.stage}
+- Narrative mode: ${res.mode}. ${MODE_TONE[res.mode]}
+- Destiny (fixed): ${life} — let it haunt the story as fate, a scar, a guiding star.
+- Active current: ${active} (its shadow-opposite is ${opp}). Let this color the scene, embodied as place, weather, creature or object — never named.
+- Disposition: ${sig.value}.
+${world?.tone ? `- Literary tone of this universe: ${world.tone}.` : ""}
+${world?.locations?.length ? `- Emblematic places: ${world.locations.join(", ")}.` : ""}
+${world?.characters?.length ? `- Key figures: ${world.characters.join(", ")}.` : ""}
+${world?.objects?.length ? `- Objects of tension: ${world.objects.join(", ")}.` : ""}`;
 }
 
-/** Short poetic note for the visible "Inner Mirror" panel. */
-export function poeticNote(psi: Psi): string {
-  if (psi.coherence > 0.7) return "The inner waters are still; the world answers without resistance.";
-  if (psi.tension > 0.7) return "Something tightens within; the world grows dense around you.";
-  if (psi.luck > 0.7) return "There is synchronicity in the air: doors open on their own.";
-  if (psi.coherence < 0.4) return "There is fog at the center; the paths narrow until you change.";
-  return "The mirror wavers, seeking its shape.";
+/** Offline fallback narration — a procedural template skeleton. */
+export function proceduralEvent(
+  res: StepResult,
+  world: { tone?: string; locations?: string[]; characters?: string[]; objects?: string[] },
+  action: string,
+): string {
+  const loc = world.locations?.[res.state.step % (world.locations?.length || 1)] ?? "the crossing";
+  const chr = world.characters?.[(res.state.step + 1) % (world.characters?.length || 1)] ?? "a stranger";
+  const obj = world.objects?.[(res.state.step + 2) % (world.objects?.length || 1)] ?? "an old key";
+  const verb =
+    {
+      explore: "You press deeper into",
+      talk: "You turn your words toward",
+      fight: "You raise your hand against",
+      flee: "You pull away from",
+      meditate: "You go still within",
+    }[action.toLowerCase()] ?? "You move through";
+
+  const moodLine =
+    res.mode === "integration"
+      ? "A strange ease settles over everything; the way seems to want you through."
+      : res.mode === "rupture"
+        ? "The air turns heavy and the edges of things refuse to hold still."
+        : "Something hangs unspoken, neither welcome nor warning.";
+
+  return `${verb} ${loc}. ${moodLine} Near ${obj}, the shape of ${chr} waits at the rim of your attention.\n\nWhat do you do?`;
 }
