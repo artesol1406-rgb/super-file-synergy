@@ -1,57 +1,73 @@
-# Plan: El Guardián del Espejo · motor Amalgam
+## Goal
 
-Combino lo mejor de los dos archivos:
-- **Base funcional** = el repo `psychic-garden-grower` ("The Mirror-Keeper"): RPG narrativo de IA con creación de personaje, compañeros, visualizador de escena por imagen IA y guardado/carga en PDF (vía Lovable AI Gateway, sin base de datos).
-- **Profundidad narrativa y estructura** = el PDF **Amalgam Engine V11**: gramática de coherencia con 7 chakras, tensión (τ), energía de curvatura, suerte (L), arcanos y la **Ley de Espejo Total** — que encaja con el isomorfismo del juego.
+Replace the current Mirror-Keeper RPG with a **procedurally generated game** (working title **AMALGAM** — easy to rename) that combines the **pixel-art source files from the uploaded zip** with the **Amalgam Engine V8 logic from the PDF**. It's **hybrid**: you walk a procedurally generated world AND read narrative panels. Story text is a **procedural skeleton elaborated by AI**, with an offline template fallback. The birthdate step is skipped — the arcana is derived from the universe seed.
 
-## Decisiones confirmadas
-- **Idioma:** bilingüe. Interfaz en español; la IA narra/responde en el idioma del jugador.
-- **Amalgam:** se usa el PDF para enriquecer la narrativa y la estructura, con **mecánicas reales nuevas** (estado de chakras, coherencia, tensión, suerte, eventos correctivos).
-- **Continuidad:** **no** se puede continuar la partida de otra persona. Se elimina el "continuar sesión" desde memoria local del navegador. La única forma de reanudar es **subir tu propio PDF de memoria**.
+Crucially, the base sprite and texture files are treated as **raw material**: the engine generates **recolored / re-arranged copies** of them to create distinct characters and varied world maps for each seed.
 
-## Qué se construye
+## What gets built
 
-### 1. Portado de la base (desde el repo)
-- Traer estilos del tema a la vela/ámbar oscuro (`src/styles.css`), el dado `d20` (puntero de asset) y los helpers:
-  - `src/lib/ai-gateway.server.ts` (proveedor del Gateway)
-  - `src/lib/streamImage.ts` (streaming de imagen de escena)
-  - `src/lib/saveGame.ts` (export/import de PDF de memoria) — **quitando el autosave a `localStorage` y el "continuar"**.
-- Rutas de servidor IA:
-  - `src/routes/api/chat.ts` — Game Master en streaming.
-  - `src/routes/api/companion.ts` — compañeros con voz propia.
-  - `src/routes/api/scene-image.ts` — imagen simbólica de la escena.
-- Pantalla principal `src/routes/index.tsx`: creación de personaje + juego (chat, modos exploración/combate/diálogo, visualizador, panel de party).
-- Instalar dependencias: `ai`, `@ai-sdk/react`, `@ai-sdk/openai-compatible`, `react-markdown`, `eventsource-parser`, `pdf-lib`.
+### 1. Source files → CDN
+Upload the zip's media to Lovable CDN (keeps the repo light), referenced via `.asset.json` pointers:
+- 8-direction sprite sets: `breathing-idle`, `walking`, `running`, `jumping` (the base character).
+- `WoodenFloorTexture.jpg`, the pixel cursor, `click.mp3`, ambient `videoplayback.m4a`, large background `18683881.gif`.
+- *Press Start 2P* font loaded in the root route.
 
-### 2. Interfaz bilingüe (español)
-- Traducir toda la UI a español (creación de personaje, modos, botones, party, mensajes de estado, textos del visualizador).
-- Razas/clases/semillas con sus "susurros" en español.
-- Instrucción al GM y a los compañeros: **responder siempre en el idioma del último mensaje del jugador** (por defecto español), manteniendo el contrato terapéutico/sin filtros original.
+### 2. Procedural asset variation — `src/lib/procArt.ts`
+Generate **copies** of the base files instead of shipping many art files:
+- **Characters**: from one base sprite set, derive distinct NPCs/the player by applying deterministic per-entity transforms (hue-rotate / saturation / brightness / contrast, optional flip) computed from the seed + the entity's arcana/personality signature. Each archetype (e.g. mentor, shadow, ally) gets a stable palette so the same seed reproduces the same cast. Applied as CSS filters on the animated sprite so GIF animation is preserved.
+- **World maps / biomes**: tint and combine the floor texture + decor into per-region "biomes" (color grade driven by narrative mode — integration = warm/clear, rupture = cold/dense, latent = muted). Built on a `<canvas>` so tiles can be recolored and stamped.
 
-### 3. Motor Amalgam (mecánicas nuevas)
-Nuevo módulo `src/lib/amalgam.ts` con un estado del observador (Ψ) que vive en el cliente y evoluciona por turno:
-- **7 chakras** Cᵢ con `activación / bloqueo / coherencia`.
-- **Coherencia global**, **tensión τ**, **energía de curvatura E_curv** (acumulada), **rigidez κ** (se ablanda con la calma, se endurece con la repetición) y **suerte L = f(coherencia, balance de chakras)**.
-- Actualización por turno mediante heurística ligera de la acción del jugador (palabras de fuerza/control/entrega/empatía/introspección/negación) + ligera aleatoriedad, siguiendo las reglas del PDF (acción impulsiva ↑C₃ ↓C₆, empática ↑C₄, negación ↑bloqueo, etc.).
-- **Eventos correctivos**: cuando τ se mantiene alta varios ciclos, el motor inyecta presión/repetición; cuando E_curv queda muy baja, inyecta "ruido fértil" (sorpresa). Estas señales se pasan al GM como instrucciones invisibles.
+### 3. Amalgam Engine V8 (faithful port) — `src/lib/amalgam.ts` (rewritten)
+Port the PDF's math to TypeScript, keeping "structural silence" (never shown to player):
+- `CP`: 7-channel temperament vector seeded deterministically from the universe seed.
+- `update_cp` (variance-minimizing flow + external force), `tension_tensor` (7×7), `apr_update` (karmic memory K → coherence 0.5).
+- Force map: `explore +0.05`, `fight -0.1`, `talk +0.02`, `flee -0.05`, `meditate +0.1`.
+- `life_arcana` over the 22 arcana, `OPPOSITES` matrix, `PERSONALITY_32` signatures, 12 hero-journey stages.
+- Mode from coherence: `>0.6` integration, `<0.4` rupture, else latent tension.
+- `summarizeForPrompt(state)` (invisible AI compass) + `proceduralEvent(state, world)` (offline template text).
 
-Integración con la narrativa (Ley de Espejo Total):
-- En cada turno, el cliente envía el estado Amalgam resumido al `api/chat`, que lo inyecta en el system prompt como **brújula invisible**: el GM colapsa la escena hacia resonancia/tensión/suerte según Ψ, **sin nombrar nunca la mecánica** (ni chakras ni fórmulas en la ficción).
+### 4. Procedural world — `src/lib/world.ts`
+- `generateWorld(seed)`: 3 locations, 3 characters (archetypes), 3 tension-objects, literary tone from seed keywords (PDF heuristics + generic fallbacks for any IP).
+- `generateMap(seed, state)`: deterministic tile grid + scattered **place nodes** (per location/character/object), biome color grade from the current mode. Seeded RNG → same seed reproduces the same map and cast.
 
-Capa visible (panel secundario, plegable) "Espejo Interior":
-- Barras de los 7 chakras, medidor de coherencia, tensión y suerte, y una nota poética del estado. Plegado por defecto para no romper la inmersión; el motor funciona aunque esté cerrado.
+### 5. Walkable world view — `src/components/WorldCanvas.tsx`
+- Top-down renderer: tiled, biome-tinted floor, place-node markers, and the player drawn from a **procedurally recolored** sprite, swapping idle/walk by movement + 8-direction facing.
+- WASD/arrow + on-screen D-pad (mobile-first, 432×812). Walk into / tap a nearby node → fires a turn. NPC nodes show their derived character sprite.
 
-### 4. Guardado / memoria (regla de continuidad)
-- Quitar el botón "Continuar sesión" y el autosave a memoria local.
-- Mantener **Guardar** (descarga PDF de memoria) y **Cargar PDF** para reanudar.
-- El PDF de memoria ahora incluye también el **estado Amalgam** (Ψ) para que al reanudar la coherencia/tensión/suerte vuelvan como estaban.
+### 6. Narrative + turn loop — `src/routes/index.tsx` (rewritten)
+- **Menu/lock screen** (pixel font, ambient music toggle, custom cursor): Singleplayer, Multiplayer (Coming Soon, disabled), Options. No app-name lock to "CloverTale".
+- **New game**: prompt only for a **universe seed**; engine seeds CP + derives the life arcana, generates world, map, and the recolored cast.
+- **Turn loop** each action (move-into-node or verb explore/talk/fight/flee/meditate):
+  1. advance CP/T/K, mode, stage;
+  2. build procedural skeleton from mode+arcana+stage+world;
+  3. **hybrid narration** — POST `/api/chat` with skeleton + invisible compass for AI prose; on failure/offline, render the template.
+- Optional hidden "Inner Mirror" debug panel (off by default — structural silence).
 
-## Detalles técnicos
-- Stack actual: TanStack Start + Tailwind v4 + shadcn (ya presentes). No requiere Lovable Cloud (sin DB).
-- IA: Lovable AI Gateway con `google/gemini-3-flash-preview` (chat/compañeros) y `google/gemini-3.1-flash-image-preview` (imagen). Verificar que exista el secreto `LOVABLE_API_KEY`; si falta, aprovisionarlo.
-- El estado Amalgam se computa en cliente y se serializa en el PDF; el servidor solo lo recibe para guiar el prompt (sin persistencia en backend).
-- Se respeta la arquitectura de rutas de TanStack (rutas API bajo `src/routes/api/`, sin tocar `routeTree.gen.ts`).
-- SEO/meta de la home en `index.tsx` actualizados al título del juego en español.
+### 7. Backend narration — `src/routes/api/chat.ts` (updated)
+System prompt rewritten to the Amalgam V8 contract: immersive narrative only; never name CP/tension/arcana; respect the seed universe's internal logic; reflect current mode/stage; end inviting a new action. Receives compass + skeleton. `companion.ts` / `scene-image.ts` kept.
 
-## Resultado
-Un RPG narrativo de espejo, en español (con narración en el idioma del jugador), donde cada escena la guía un motor de coherencia Amalgam invisible con mecánicas reales (chakras, tensión, suerte, eventos correctivos), visualizador de escena por IA, compañeros vivos, y memoria portable solo vía tu propio PDF.
+### 8. Continuity (unchanged rule)
+No "continue from memory" — a fresh launch always starts a new game. Keep optional **Save/Load Memory PDF** (now serializing V8 state) so a run resumes only from an uploaded file.
+
+## Technical notes
+
+```text
+Menu ─"Singleplayer"─▶ Seed prompt ─▶ generateWorld + seed CP/arcana + procArt cast/biomes
+        │                                              │
+        ▼                                              ▼
+  WorldCanvas (walk, recolored 8-dir sprite) ◀── generateMap(seed, state)
+        │ enter node / action verb
+        ▼
+  amalgam step (CP→T→K, mode, stage) ─▶ proceduralEvent (skeleton)
+        ├── online: POST /api/chat (skeleton + invisible compass) ─▶ AI prose
+        └── offline/error: procedural template
+```
+
+- Deterministic seeded RNG (mulberry32 + string hash) → reproducible worlds, casts and maps per seed.
+- Character/biome variety comes from **transforming the base files** (CSS filters for sprites, canvas recolor for tiles), not from new committed art.
+- Big media + sprites served from CDN pointers, never committed as binaries.
+- Engine is 100% client-side; server only receives the compass (no persistence), matching the no-DB architecture.
+- Tailwind v4 tokens + pixel font; touch-first for the 432-wide preview, scaling up on desktop.
+
+## Out of scope
+Multiplayer (stays "Coming Soon"), the Store, accounts/database, and any reveal of the engine internals to the player.
