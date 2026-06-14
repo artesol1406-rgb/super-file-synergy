@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { IDLE, WALK, type Dir8 } from "@/lib/sprites";
-import { MEDIA } from "@/lib/sprites";
+import { IDLE, WALK, MEDIA, type Dir8 } from "@/lib/sprites";
 import { playerLook, characterLook, nodeHue, biomeGrade } from "@/lib/procArt";
 import type { GameMap, PlaceNode } from "@/lib/world";
 import type { NarrativeMode } from "@/lib/amalgam";
