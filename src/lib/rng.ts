@@ -1,0 +1,42 @@
+/**
+ * Deterministic seeded randomness.
+ * Same seed string -> same world, map and cast.
+ */
+
+/** xmur3 string hash -> 32-bit seed */
+export function hashSeed(str: string): number {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^= h >>> 16) >>> 0;
+}
+
+/** mulberry32 PRNG factory */
+export function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export type Rng = () => number;
+
+export function rngFromSeed(seed: string): Rng {
+  return mulberry32(hashSeed(seed));
+}
+
+export function randInt(rng: Rng, lo: number, hi: number): number {
+  return Math.floor(rng() * (hi - lo + 1)) + lo;
+}
+
+export function pick<T>(rng: Rng, arr: T[]): T {
+  return arr[Math.floor(rng() * arr.length)];
+}

@@ -102,4 +102,16 @@
   .prose-tavern p { margin-bottom: 0.75rem; line-height: 1.65; }
   .prose-tavern em { color: var(--color-primary); font-style: italic; }
   .prose-tavern strong { color: var(--color-ember); font-weight: 700; }
+  .font-pixel { font-family: 'Press Start 2P', ui-monospace, monospace; }
+  .pixelated { image-rendering: pixelated; }
+  .menu-scanlines {
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.18) 0px,
+      rgba(0, 0, 0, 0.18) 1px,
+      transparent 2px,
+      transparent 4px
+    );
+  }
 }
+

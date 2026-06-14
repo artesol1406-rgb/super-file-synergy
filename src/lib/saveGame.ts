@@ -1,17 +1,20 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import type { Psi } from "./amalgam";
+import type { AmalgamState } from "./amalgam";
+import type { World } from "./world";
 
 export type SavedMessage = { id: string; role: "user" | "assistant"; text: string };
 
 export type SaveState = {
-  version: 1;
+  version: 2;
   savedAt: string;
-  character: any;
+  seed: string;
+  world: World;
+  amalgam: AmalgamState;
+  player: { x: number; y: number };
   messages: SavedMessage[];
-  amalgam?: Psi;
 };
 
-const MARKER_OPEN = "<<<GUARDIAN-DEL-ESPEJO-SAVE-V1>>>";
+const MARKER_OPEN = "<<<AMALGAM-SAVE-V2>>>";
 const MARKER_CLOSE = "<<<END-SAVE>>>";
 
 function toBase64(str: string): string {
@@ -65,6 +68,10 @@ export async function exportMemoryPdf(state: SaveState): Promise<Uint8Array> {
     return out;
   }
 
+  function sanitize(s: string): string {
+    return s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, "-").replace(/[\u2026]/g, "...");
+  }
+
   function drawLines(lines: string[], f: typeof font, size: number, color = ink, gap = 4) {
     for (const ln of lines) {
       if (y < margin + size) newPage();
@@ -73,62 +80,35 @@ export async function exportMemoryPdf(state: SaveState): Promise<Uint8Array> {
     }
   }
 
-  // pdf-lib StandardFonts (WinAnsi) no soporta todos los glifos; saneamos lo más común.
-  function sanitize(s: string): string {
-    return s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, "-");
-  }
-
-  // Title
-  drawLines(["The Mirror-Keeper"], bold, 24, ink, 6);
-  drawLines([`A memory of ${state.character?.name ?? "the traveler"}`], italic, 12, muted, 4);
+  drawLines(["AMALGAM"], bold, 24, ink, 6);
+  drawLines([`A memory of the universe: ${state.world.title}`], italic, 12, muted, 4);
   drawLines([`Sealed on ${new Date(state.savedAt).toLocaleString()}`], italic, 9, muted, 14);
 
-  // Character sheet
-  drawLines(["The character"], bold, 14, ink, 6);
-  const c = state.character ?? {};
+  drawLines(["The world"], bold, 14, ink, 6);
   const sheet = [
-    `Name: ${c.name ?? ""}`,
-    `Universe: ${c.universe ?? ""}`,
-    `Race: ${c.race ?? ""}`,
-    `Class: ${c.className ?? ""}`,
-    `Mode: ${c.mode ?? ""}`,
-    c.traits ? `Traits: ${c.traits}` : "",
-    c.shadowSeed ? `Seed: ${c.shadowSeed}` : "",
-  ].filter(Boolean);
+    `Seed: ${state.seed}`,
+    `Tone: ${state.world.tone}`,
+    `Places: ${state.world.locations.join(", ")}`,
+    `Figures: ${state.world.characters.join(", ")}`,
+    `Objects: ${state.world.objects.join(", ")}`,
+  ];
   for (const line of sheet) drawLines(wrap(line, font, 11), font, 11, ink, 3);
-
-  if (c.companions?.length) {
-    y -= 6;
-    drawLines(["Company"], bold, 12, ink, 4);
-    for (const k of c.companions) {
-      drawLines(wrap(`- ${k.name}${k.description ? " — " + k.description : ""}`, font, 11), font, 11, ink, 3);
-    }
-  }
 
   y -= 12;
   drawLines(["The story so far"], bold, 14, ink, 6);
-
   for (const m of state.messages) {
     if (!m.text.trim()) continue;
-    const label = m.role === "user" ? `${c.name ?? "You"}:` : "The Keeper:";
+    const label = m.role === "user" ? "You:" : "The world:";
     drawLines([label], bold, 10, muted, 3);
-    drawLines(
-      wrap(m.text, m.role === "assistant" ? font : italic, 11),
-      m.role === "assistant" ? font : italic,
-      11,
-      ink,
-      3,
-    );
+    drawLines(wrap(m.text, m.role === "assistant" ? font : italic, 11), m.role === "assistant" ? font : italic, 11, ink, 3);
     y -= 6;
   }
 
-  // Resume data: in metadata AND as a visible marker (robust parsing)
   const json = JSON.stringify(state);
   const b64 = toBase64(json);
 
-  pdf.setTitle(`The Mirror-Keeper — ${c.name ?? "memory"}`);
-  pdf.setAuthor(c.name ?? "traveler");
-  pdf.setSubject("guardian-del-espejo-save-v1");
+  pdf.setTitle(`AMALGAM — ${state.world.title}`);
+  pdf.setSubject("amalgam-save-v2");
   pdf.setKeywords([MARKER_OPEN + b64 + MARKER_CLOSE]);
 
   newPage();
@@ -149,7 +129,7 @@ export async function importMemoryPdf(file: File): Promise<SaveState> {
     const m = keywords.match(new RegExp(MARKER_OPEN + "([A-Za-z0-9+/=]+)" + MARKER_CLOSE));
     if (m) {
       const state = JSON.parse(fromBase64(m[1])) as SaveState;
-      if (state.version === 1) return state;
+      if (state.version === 2) return state;
     }
   } catch {}
   const text = new TextDecoder("latin1").decode(bytes);
@@ -158,9 +138,9 @@ export async function importMemoryPdf(file: File): Promise<SaveState> {
   if (match) {
     const b64 = match[1].replace(/[^A-Za-z0-9+/=]/g, "");
     const state = JSON.parse(fromBase64(b64)) as SaveState;
-    if (state.version === 1) return state;
+    if (state.version === 2) return state;
   }
-  throw new Error("This PDF does not contain a Mirror-Keeper memory.");
+  throw new Error("This PDF does not contain an AMALGAM memory.");
 }
 
 export function downloadBytes(bytes: Uint8Array, filename: string) {
